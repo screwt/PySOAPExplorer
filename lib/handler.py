@@ -32,7 +32,6 @@ class Handler(BaseHTTPServer.BaseHTTPRequestHandler):
 		
 	def do_GET(self):
 		print("New GET req path:"+self.path)
-		#self.handle_data()
 		contentType = 'text/html'
 
 		if 'Content-type' in self.headers:
@@ -45,44 +44,12 @@ class Handler(BaseHTTPServer.BaseHTTPRequestHandler):
 			unauthorisedPath = "%s/unauthorized.html" % self.server.docRoot 
 			doc = ""
 			if self.path.startswith('../'):
-				 
 				code = 404
-			elif docPath.endswith('/') and os.path.exists("%sindex.html" % docPath):
+			elif docPath.endswith('/'):
+				print("loading loadIndex()")
 				doc = PXSPage.loadIndex()
 				code = 200
-			elif docPath.endswith('/master.html'):
-				#-- cas particulierl, à larriver sur la page master, il faudra verifier la presence de la valeur master_session_id dans le cookie.
-				#-- 	si celle ci corresponds a une entré du tableau masterSessionDict(cf EDServiceDescriptor) et que le user est bien le créateur de cette master session
-				#-- 	alors on alimente la page master.html et les java script de cette page contendron
-				so = self.Session()
-				
-				try:
-				
-					code = 200
-				except EDMasterException, e:
-					self.log_message("Error EDMasterException:"+e.value)
-				
-					self.cookie['master_session_id'] = ""
-					code = 401	
-				except EDLoginException, e:
-					self.log_message("Error EDLoginException:"+e.value)
-					
-					code = 200
-					
-			elif os.path.exists(docPath):
-				
-				if docPath.endswith('.css'):
-					contentType = 'text/css'
-				elif docPath.endswith('.js'):
-					contentType = 'application/javascript'
-				code = 200
-			elif self.path.startswith('/music'):
-				file = decode(url2pathname(self.path[7:]))
-				contentType = 'audio/mpeg'
-				
-				code = 200
 			else:
-				
 				code = 404
 			
 			result = (code, doc, contentType)
@@ -145,7 +112,28 @@ class Handler(BaseHTTPServer.BaseHTTPRequestHandler):
 		url = "http://"+postvars["server"][0]+"/adxwsvc/services/CAdxWebServiceXmlCC?wsdl"
 		try:
 			client = Client(url)
-			RetCnt = PXSPage.loadServicelist()
+			methodes = []
+			for sd in client.sd :
+				for port in sd.ports:
+					for method in port[0].methods:
+						methodes.append(str(method))
+							
+			
+			CallContext = client.factory.create('CAdxCallContext')
+			CallContext.codeLang = "FRA"
+			CallContext.codeUser = postvars["user"]
+			CallContext.password = postvars["pass"]
+			CallContext.poolAlias = postvars["poolalias"]
+			CallContext.poolId = None
+			CallContext.requestConfig = None
+			
+			publicName = "AWE"
+			objectKeys = client.factory.create('ArrayOfCAdxParamKeyValue')
+			listSize = 100
+			
+			#-- appel au web service list objet AWE
+			xmlWSLIST = client.service.query(CallContext,publicName,objectKeys,listSize)
+			RetCnt = PXSPage.loadServicelist(methodes)
 		except URLError as e:
 			RetCnt = PXSPage.loadError(["URLError: can't reach server: "+url,"reason: "+str(e.reason)])
 		CntType = 'text/html'

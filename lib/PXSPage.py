@@ -14,6 +14,9 @@ def loadIndex():
 		page.add("server:")
 		page.input(id="server",type="text",name="server")
 		page.br()
+		page.add("poolalias:")
+		page.input(id="poolalias",type="text",name="poolalias")
+		page.br()	
 		page.add("user:")
 		page.input(id="user",type="text",name="user")
 		page.br()	
@@ -30,14 +33,21 @@ def loadIndex():
 		
 		
 		
-def loadServicelist():
+def loadServicelist(methodes):
+		print methodes
 		page = markup.page( )
 		page.init( css="( 'layout.css', 'alt.css', 'images.css' )" )
 		page.div( class_='header' )
 		page.h1("Soap Explorer")
 		page.div.close( )
 		page.div( class_='content' )
-		page.h2("Service List")
+		page.h2("Methode List")
+		for methode in methodes:
+			page.add(methode)
+			page.br()
+		
+		page.h2("Publications List")
+		
 		page.div.close( )
 		page.div( class_='footer' )
 		page.p("footer")
